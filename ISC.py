@@ -30,6 +30,25 @@ def update_dataframe(time,t_measure,agentdict,dataframe):
 		dataframe.loc[start+i]=[time,iden,o,e]
 	return dataframe
 
+# def init_JSD(P):
+# 	import pandas as pd
+# 	import numpy as np
+# 	columns=('time','agent','opinion','expressed',) 
+# 	jsd_dataframe = pd.DataFrame(columns=columns,index=np.arange(0,P['t_sim']/P['t_measure']))
+# 	return jsd_dataframe
+	
+# def update_JSD(time,t_measure,dataframe):
+# 	import pandas as pd
+# 	import numpy as np
+#	import scipy
+# 	start=int(time/t_measure)
+
+# 	histP=np.histogram(P,bins=10,density=True)[0]
+# 	histQ=np.histogram(Q,bins=10,density=True)[0]
+# 	M = 0.5 * (histP + histQ)
+# 	return 0.5 * (stats.entropy(histP, M) + stats.entropy(histQ, M))
+# 	return dataframe
+
 def id_generator(size=6):
 	import string
 	import random
@@ -136,12 +155,6 @@ def plot_maps(agentdict,dataframe,P):
 		plt.close(figure1)
 		plt.close(figure2)
 
-# def JSD(P, Q):
-# 	histP=np.histogram(P,bins=10,density=True)[0]
-# 	histQ=np.histogram(Q,bins=10,density=True)[0]
-# 	M = 0.5 * (histP + histQ)
-# 	return 0.5 * (stats.entropy(histP, M) + stats.entropy(histQ, M))
-
 def main():
 	import pandas as pd
 	import os
@@ -164,7 +177,9 @@ def main():
 		rng.shuffle(order)
 		for i in order: #randomize order of dialogue initiation
 			agentdict[i].hold_dialogue(rng)
-		if t % P['t_measure'] == 0: update_dataframe(t,P['t_measure'],agentdict,dataframe)
+		if t % P['t_measure'] == 0:
+			update_dataframe(t,P['t_measure'],agentdict,dataframe)
+			# update_JSD(t,P['t_measure'],agentdict,dataframe)
 
 	print '\nExporting Data...'
 	root=os.getcwd()
