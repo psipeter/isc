@@ -6,26 +6,28 @@ def import_params(filename):
 	the_params=eval(open(filename).read())
 	return the_params
 
-def init_dataframe(P,agentlist):
+def init_dataframe(P,agentdict):
 	import pandas as pd
 	import numpy as np
 	columns=('time','agent','opinion','expressed',) 
 	dataframe = pd.DataFrame(columns=columns,
 							index=np.arange(0,P['t_sim']/P['t_measure']*P['popsize']))
-	for a in range(len(agentlist)):
+	for i in agentdict.iterkeys():
 		time=0
-		o=agentlist[a].O
-		e=agentlist[a].E
-		dataframe.loc[a]=[time,a,o,e]
+		iden=agentdict[i].iden
+		o=agentdict[i].O
+		e=agentdict[i].E
+		dataframe.loc[i]=[time,iden,o,e]
 	return dataframe
 	
-def update_dataframe(time,t_measure,agentlist,dataframe):
+def update_dataframe(time,t_measure,agentdict,dataframe):
 	import pandas as pd
-	i=int(time/t_measure)*len(agentlist)
-	for a in range(len(agentlist)):
-		o=agentlist[a].O
-		e=agentlist[a].E
-		dataframe.loc[i+a]=[time,a,o,e]
+	start=int(time/t_measure)*len(agentdict)
+	for i in agentdict.iterkeys():
+		iden=agentdict[i].iden
+		o=agentdict[i].O
+		e=agentdict[i].E
+		dataframe.loc[start+i]=[time,iden,o,e]
 	return dataframe
 
 def id_generator(size=6):
@@ -35,7 +37,7 @@ def id_generator(size=6):
 
 def create_agents(P,rng):
 	from agent import agent
-	agentlist=[]
+	agentdict={}
 	for i in range(P['popsize']):
 		a=rng.uniform(0,P['gridsize'])
 		b=rng.uniform(0,P['gridsize'])
@@ -62,13 +64,12 @@ def create_agents(P,rng):
 			g=rng.normal(P['mean_social_reach'],P['std_social_reach'])
 			if g<0: g=0
 		else: g=P['mean_social_reach']
-		agentlist.append(agent(i,a,b,c,d,e,f,g))
-	# print mean([len(ind.getnetwork()) for ind in agentlist])
-	return agentlist	
+		agentdict[i]=agent(i,a,b,c,d,e,f,g)
+	return agentdict	
 
-def network_agents(agentlist):
-	for i in agentlist:
-		for j in agentlist:
+def network_agents(agentdict):
+	for i in agentdict.itervalues():
+		for j in agentdict.itervalues():
 			if i != j and ((j.x - i.x)**2 + (j.y - i.y)**2)**(0.5) < min(i.radius,j.radius):
 				i.addtonetwork(j)
 
@@ -80,6 +81,9 @@ def plot_opinion_trajectory(dataframe,P):
 	figure2, ax2 = plt.subplots(1, 1)
 	sns.tsplot(time="time",value="opinion",data=dataframe,unit="agent",ax=ax1, err_style="unit_traces")
 	sns.tsplot(time="time",value="expressed",data=dataframe,unit="agent",ax=ax2, err_style="unit_traces")
+	# for a in range(P['popsize']):
+	# 	sns.tsplot(time="time",value="opinion",data=dataframe.query("agent==%s"%a).reset_index(),ax=ax1)
+	# 	sns.tsplot(time="time",value="expressed",data=dataframe.query("agent==%s"%a).reset_index(),ax=ax2)
 	ax1.set(ylim=(0,100))
 	ax2.set(ylim=(0,100))
 	figure1.savefig('opinion_trajectory.png')
@@ -104,7 +108,7 @@ def plot_histograms(dataframe,P):
 		plt.close(figure1)
 		plt.close(figure2)
 
-def plot_maps(agentlist,dataframe,P):
+def plot_maps(agentdict,dataframe,P):
 	import matplotlib.pyplot as plt
 	import seaborn as sns
 	from matplotlib import colors
@@ -114,16 +118,25 @@ def plot_maps(agentlist,dataframe,P):
 	sns.set(context=P['plot_context'],style='white')
 	for t in P['t_plot']:
 		cm = plt.cm.get_cmap('RdYlBu')
-		opinions=dataframe.query("time==%s"%t)['opinion']
-		expressed=dataframe.query("time==%s"%t)['expressed']
-		X=[i.x for i in agentlist]
-		Y=[i.y for i in agentlist]
+		df_t=dataframe.query("time==%s"%t).reset_index()
+		# opinions,expressed,X,Y=[],[],[],[]
+		# print df_t
+		# for a in agentlist:
+		# 	iden=a.iden
+		# 	opinions.append(df_t.query("agent==%s"%iden)['opinion'][iden])
+		# 	expressed.append(df_t.query("agent==%s"%iden)['expressed'][iden])
+		# 	X.append(a.x)
+		# 	Y.append(a.y)
+		# print opinions
+		opinions=np.array(df_t['opinion'])/100
+		expressed=np.array(df_t['expressed'])/100
+		agentorder=np.array(df_t['agent']).astype(int)
+		X=[agentdict[i].x for i in agentorder]
+		Y=[agentdict[i].y for i in agentorder]
 		figure1, ax1 = plt.subplots(1, 1)
 		figure2, ax2 = plt.subplots(1, 1)
-		o_colors=np.asfarray(opinions/100)
-		e_colors=np.asfarray(expressed/100)
-		one=ax1.scatter(X,Y,P['gridsize']/5,c=o_colors,vmin=0,vmax=1,cmap=cm)
-		two=ax2.scatter(X,Y,P['gridsize']/5,c=e_colors,vmin=0,vmax=1,cmap=cm)
+		one=ax1.scatter(X,Y,P['gridsize']/3,c=opinions,vmin=0,vmax=1,cmap=cm)
+		two=ax2.scatter(X,Y,P['gridsize']/3,c=expressed,vmin=0,vmax=1,cmap=cm)
 		ax1.set(xlim=(0,P['gridsize']),ylim=(0,P['gridsize']),xticklabels=[],yticklabels=[])
 		ax2.set(xlim=(0,P['gridsize']),ylim=(0,P['gridsize']),xticklabels=[],yticklabels=[])
 		figure1.colorbar(one)
@@ -149,17 +162,19 @@ def main():
 	'''Import Parameters from File'''
 	P=import_params('parameters.txt')
 	rng=np.random.RandomState(seed=P['seed'])
-	agentlist=create_agents(P,rng)
-	network_agents(agentlist)
-	dataframe=init_dataframe(P,agentlist)
+	agentdict=create_agents(P,rng)
+	network_agents(agentdict)
+	dataframe=init_dataframe(P,agentdict)
 
 	print 'Running Simulation...'
 	for t in np.arange(1,P['t_sim']+1):
 		sys.stdout.write("\r%d%%" %(100*t/P['t_sim']))
 		sys.stdout.flush()
-		for i in agentlist: i.hold_dialogue()
-		if t % P['t_measure'] == 0: update_dataframe(t,P['t_measure'],agentlist,dataframe)
-		rng.shuffle(agentlist)
+		order=np.array(agentdict.keys())
+		rng.shuffle(order)
+		for i in order: #randomize order of dialogue initiation
+			agentdict[i].hold_dialogue(rng)
+		if t % P['t_measure'] == 0: update_dataframe(t,P['t_measure'],agentdict,dataframe)
 
 	print '\nExporting Data...'
 	root=os.getcwd()
@@ -174,7 +189,7 @@ def main():
 	plot_context='poster'
 	plot_opinion_trajectory(dataframe,P)
 	plot_histograms(dataframe,P)
-	plot_maps(agentlist,dataframe,P)
+	plot_maps(agentdict,dataframe,P)
 	os.chdir(root)
 
 if __name__=='__main__':

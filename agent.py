@@ -6,7 +6,7 @@ import numpy as np
 class agent:
 
 	def __init__(self,iden,xpos,ypos,o,intol,sus,con,radius):
-		self.id = iden
+		self.iden = iden
 		self.x = xpos
 		self.y = ypos
 		self.O = o
@@ -18,6 +18,12 @@ class agent:
 		self.radius=radius
 		self.network=[]
 
+	def set_E(self,elist):
+		if len(elist) == 0.0: posturing = 0.0	
+		else: posturing = np.mean(elist) - self.O #O_j is a constant, so pull out of sum
+		self.E = self.O + self.con/self.commit * posturing
+		if self.E < 0.0: self.E = 0.0
+		elif self.E > 100.0: self.E = 100.0
 
 	def set_commit(self):
 		self.commit = 1.0 + self.sus * (abs(50.0 - self.O) / 50.0)
@@ -44,12 +50,13 @@ class agent:
 	def addtonetwork(self,other):
 		self.network.append(other)
 
-	def hold_dialogue(self):
+	def hold_dialogue(self,rng):
 		elist=[]
 		wlist=[]
 		elist.append(self.E) #i initiates by speaking his true opinion
 		wlist.append(1.0) #placekeeper
 		self.set_commit() #calculate i's susceptibility
+		rng.shuffle(self.network) #randomize order of speaking each dialogue
 		for j in self.network:
 			j.set_E(elist) #each member of the dialogue calculates expressed
 			elist.append(j.E) #expressed is spoken to the dialogue
