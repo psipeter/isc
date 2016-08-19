@@ -18,12 +18,6 @@ class agent:
 		self.radius=radius
 		self.network=[]
 
-	def set_E(self,elist):
-		if len(elist) == 0.0: posturing = 0.0	
-		else: posturing = np.mean(elist) - self.O #O_j is a constant, so pull out of sum
-		self.E = self.O + self.con/self.commit * posturing
-		if self.E < 0.0: self.E = 0.0
-		elif self.E > 100.0: self.E = 100.0
 
 	def set_commit(self):
 		self.commit = 1.0 + self.sus * (abs(50.0 - self.O) / 50.0)
