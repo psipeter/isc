@@ -45,8 +45,8 @@ def update_JSD(time,params,dataframe,jsd_dataframe):
 	df_t=dataframe.query("time==%s"%time).reset_index()
 	opinions=np.array(df_t['opinion'])
 	expressed=np.array(df_t['expressed'])
-	A=np.histogram(opinions,bins=params['bins'],density=True)[0]
-	B=np.histogram(expressed,bins=params['bins'],density=True)[0]
+	A=np.histogram(opinions,density=True)[0]
+	B=np.histogram(expressed,density=True)[0]
 	M = 0.5 * (A + B)
 	start=int(time/params['t_measure'])
 	jsd=0.5*(stats.entropy(A,M)+stats.entropy(B,M))
@@ -73,13 +73,12 @@ def create_agents(P,rng):
 			d=rng.normal(P['mean_intolerance'],P['std_intolerance'])
 			if d<0: d=0
 		else: d=P['mean_intolerance']
-		if int(P['std_intolerance']) != 0:
+		if int(P['std_susceptibility']) != 0:
 			e=rng.normal(P['mean_susceptibility'],P['std_susceptibility'])
 			if e<0: e=0
 		else: e=P['mean_susceptibility']
 		if int(P['std_conformity'] )!= 0:
 			f=rng.normal(P['mean_conformity'],P['std_conformity'])
-			if f<0: f=0
 			#if f<0: f=0 #negative implies anticonformity / distinctiveness
 			#if f>1: f=1 #over 1 implies overshooting the group norm in the effort to conform
 		else: f=P['mean_conformity']
@@ -122,8 +121,8 @@ def plot_histograms(dataframe,P):
 		expressed=dataframe.query("time==%s"%t)['expressed']
 		figure1, ax1 = plt.subplots(1, 1)
 		figure2, ax2 = plt.subplots(1, 1)
-		sns.distplot(opinions,ax=ax1,label='t=%s' %t) #bins=P['bins'],
-		sns.distplot(expressed,ax=ax2,label='t=%s' %t)
+		sns.distplot(opinions,kde=True,ax=ax1,label='t=%s' %t)
+		sns.distplot(expressed,kde=True,ax=ax2,label='t=%s' %t)
 		ax1.set(xlim=(0,100))
 		ax2.set(xlim=(0,100))
 		figure1.savefig('opinion_histogram_t=%s.png' %t)
@@ -201,8 +200,10 @@ def main():
 	print '\nExporting Data...'
 	root=os.getcwd()
 	addon=str(id_generator(9))
-	os.makedirs(root+'\\data\\'+addon)
-	os.chdir(root+'\\data\\'+addon)
+	os.makedirs(root+'/data/'+addon) #linux
+	os.chdir(root+'/data/'+addon) 
+	# os.makedirs(root+'\\data\\'+addon) #pc
+	# os.chdir(root+'\\data\\'+addon)
 	dataframe.to_pickle('data.pkl')
 	jsd_dataframe.to_pickle('jsd.pkl')
 	param_df=pd.DataFrame([P])
@@ -215,6 +216,8 @@ def main():
 	plot_histograms(dataframe,P)
 	plot_maps(agentdict,dataframe,P)
 	os.chdir(root)
+
+	return dataframe
 
 if __name__=='__main__':
 	main()
