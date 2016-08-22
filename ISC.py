@@ -9,7 +9,7 @@ def import_params(filename):
 def init_dataframe(P,agentdict):
 	import pandas as pd
 	import numpy as np
-	columns=('time','agent','opinion','expressed',) 
+	columns=('time','agent','opinion','expressed') 
 	dataframe = pd.DataFrame(columns=columns,
 							index=np.arange(0,P['t_sim']/P['t_measure']*P['popsize']))
 	for i in agentdict.iterkeys():
@@ -30,24 +30,28 @@ def update_dataframe(time,t_measure,agentdict,dataframe):
 		dataframe.loc[start+i]=[time,iden,o,e]
 	return dataframe
 
-# def init_JSD(P):
-# 	import pandas as pd
-# 	import numpy as np
-# 	columns=('time','agent','opinion','expressed',) 
-# 	jsd_dataframe = pd.DataFrame(columns=columns,index=np.arange(0,P['t_sim']/P['t_measure']))
-# 	return jsd_dataframe
+def init_JSD(P):
+	import pandas as pd
+	import numpy as np
+	columns=('time','JSD') 
+	jsd_dataframe = pd.DataFrame(columns=columns)
+	jsd_dataframe.loc[0]=[0,0.0]
+	return jsd_dataframe
 	
-# def update_JSD(time,t_measure,dataframe):
-# 	import pandas as pd
-# 	import numpy as np
-#	import scipy
-# 	start=int(time/t_measure)
-
-# 	histP=np.histogram(P,bins=10,density=True)[0]
-# 	histQ=np.histogram(Q,bins=10,density=True)[0]
-# 	M = 0.5 * (histP + histQ)
-# 	return 0.5 * (stats.entropy(histP, M) + stats.entropy(histQ, M))
-# 	return dataframe
+def update_JSD(time,params,dataframe,jsd_dataframe):
+	import pandas as pd
+	import numpy as np
+	from scipy import stats
+	df_t=dataframe.query("time==%s"%time).reset_index()
+	opinions=np.array(df_t['opinion'])
+	expressed=np.array(df_t['expressed'])
+	A=np.histogram(opinions,bins=params['bins'],density=True)[0]
+	B=np.histogram(expressed,bins=params['bins'],density=True)[0]
+	M = 0.5 * (A + B)
+	start=int(time/params['t_measure'])
+	jsd=0.5*(stats.entropy(A,M)+stats.entropy(B,M))
+	jsd_dataframe.loc[start]=[time,jsd]
+	return jsd_dataframe
 
 def id_generator(size=6):
 	import string
@@ -132,7 +136,7 @@ def plot_maps(agentdict,dataframe,P):
 	import seaborn as sns
 	from matplotlib import colors
 	import numpy as np
-	import ipdb
+	# import ipdb
 	sns.set(context=P['plot_context'],style='white')
 	for t in P['t_plot']:
 		cm = plt.cm.get_cmap('seismic')
@@ -155,9 +159,21 @@ def plot_maps(agentdict,dataframe,P):
 		plt.close(figure1)
 		plt.close(figure2)
 
+def plot_JSD(dataframe,jsd_dataframe,P):
+	import matplotlib.pyplot as plt
+	import seaborn as sns
+	# import ipdb
+	sns.set(context=P['plot_context'])
+	figure1, ax1 = plt.subplots(1, 1)
+	# ipdb.set_trace()
+	# sns.tsplot(time="time",value="JSD",data=jsd_dataframe,ax=ax1) #inexplicably broken
+	ax1.plot(jsd_dataframe['time'],jsd_dataframe['JSD'])
+	ax1.set(ylim=(0,1),xlabel='time',ylabel='JSD')
+	figure1.savefig('JSD.png')
+
 def main():
 	import pandas as pd
-	import os
+	import os 
 	import numpy as np
 	import sys
 	# import ipdb
@@ -168,6 +184,7 @@ def main():
 	agentdict=create_agents(P,rng)
 	network_agents(agentdict)
 	dataframe=init_dataframe(P,agentdict)
+	jsd_dataframe=init_JSD(P)
 
 	print 'Running Simulation...'
 	for t in np.arange(1,P['t_sim']+1):
@@ -179,7 +196,7 @@ def main():
 			agentdict[i].hold_dialogue(rng)
 		if t % P['t_measure'] == 0:
 			update_dataframe(t,P['t_measure'],agentdict,dataframe)
-			# update_JSD(t,P['t_measure'],agentdict,dataframe)
+			update_JSD(t,P,dataframe,jsd_dataframe)
 
 	print '\nExporting Data...'
 	root=os.getcwd()
@@ -187,11 +204,13 @@ def main():
 	os.makedirs(root+'\\data\\'+addon)
 	os.chdir(root+'\\data\\'+addon)
 	dataframe.to_pickle('data.pkl')
+	jsd_dataframe.to_pickle('jsd.pkl')
 	param_df=pd.DataFrame([P])
 	param_df.reset_index().to_json('parameters.json',orient='records')
 
 	print 'Plotting...'
 	plot_context='poster'
+	plot_JSD(dataframe,jsd_dataframe,P)
 	plot_opinion_trajectory(dataframe,P)
 	plot_histograms(dataframe,P)
 	plot_maps(agentdict,dataframe,P)
