@@ -64,25 +64,25 @@ def create_agents(P,rng):
 	for i in range(P['popsize']):
 		a=rng.uniform(0,P['gridsize'])
 		b=rng.uniform(0,P['gridsize'])
-		if int(P['std_init_opinion']) != 0:
+		if P['std_init_opinion'] != 0:
 			c=rng.normal(P['mean_init_opinion'],P['std_init_opinion'])
 			if c<0: c=0
 			if c>100: c=100
 		else: c=P['mean_init_opinion']
-		if int(P['std_intolerance']) != 0:
+		if P['std_intolerance'] != 0:
 			d=rng.normal(P['mean_intolerance'],P['std_intolerance'])
 			if d<0: d=0
 		else: d=P['mean_intolerance']
-		if int(P['std_susceptibility']) != 0:
+		if P['std_susceptibility'] != 0:
 			e=rng.normal(P['mean_susceptibility'],P['std_susceptibility'])
 			if e<0: e=0
 		else: e=P['mean_susceptibility']
-		if int(P['std_conformity'] )!= 0:
+		if P['std_conformity'] != 0:
 			f=rng.normal(P['mean_conformity'],P['std_conformity'])
 			#if f<0: f=0 #negative implies anticonformity / distinctiveness
 			#if f>1: f=1 #over 1 implies overshooting the group norm in the effort to conform
 		else: f=P['mean_conformity']
-		if int(P['std_social_reach']) != 0:
+		if P['std_social_reach'] != 0:
 			g=rng.normal(P['mean_social_reach'],P['std_social_reach'])
 			if g<0: g=0
 		else: g=P['mean_social_reach']
@@ -94,6 +94,10 @@ def network_agents(agentdict):
 		for j in agentdict.itervalues():
 			if i != j and ((j.x - i.x)**2 + (j.y - i.y)**2)**(0.5) < min(i.radius,j.radius):
 				i.addtonetwork(j)
+
+
+
+
 
 def plot_opinion_trajectory(dataframe,P):
 	import matplotlib.pyplot as plt
@@ -111,52 +115,76 @@ def plot_opinion_trajectory(dataframe,P):
 	figure1.savefig('opinion_trajectory.png')
 	figure2.savefig('expressed_trajectory.png')
 
-def plot_histograms(dataframe,P):
+def plot_histograms(dataframe,P,datadir):
 	import matplotlib.pyplot as plt
 	import seaborn as sns
 	import numpy as np
+	import os
+	opiniondir=datadir+'/opinion_histograms/' #linux
+	expresseddir=datadir+'/expressed_histograms/' #linux
 	sns.set(context=P['plot_context'])
+	os.makedirs(opiniondir)
+	os.chdir(opiniondir)
 	for t in P['t_plot']:
 		opinions=dataframe.query("time==%s"%t)['opinion']
-		expressed=dataframe.query("time==%s"%t)['expressed']
 		figure1, ax1 = plt.subplots(1, 1)
-		figure2, ax2 = plt.subplots(1, 1)
 		sns.distplot(opinions,kde=True,ax=ax1,label='t=%s' %t)
-		sns.distplot(expressed,kde=True,ax=ax2,label='t=%s' %t)
 		ax1.set(xlim=(0,100))
-		ax2.set(xlim=(0,100))
 		figure1.savefig('opinion_histogram_t=%s.png' %t)
-		figure2.savefig('expressed_histogram_t=%s.png' %t)
 		plt.close(figure1)
+	os.makedirs(expresseddir)
+	os.chdir(expresseddir)
+	sns.set(context=P['plot_context'])
+	for t in P['t_plot']:
+		expressed=dataframe.query("time==%s"%t)['expressed']
+		figure2, ax2 = plt.subplots(1, 1)
+		sns.distplot(expressed,kde=True,ax=ax2,label='t=%s' %t)
+		ax2.set(xlim=(0,100))
+		figure2.savefig('expressed_histogram_t=%s.png' %t)
 		plt.close(figure2)
+	os.chdir(datadir)
 
-def plot_maps(agentdict,dataframe,P):
+def plot_maps(agentdict,dataframe,P,datadir):
 	import matplotlib.pyplot as plt
 	import seaborn as sns
 	from matplotlib import colors
 	import numpy as np
+	import os
 	# import ipdb
+	opiniondir=datadir+'/opinion_maps/' #linux
+	expresseddir=datadir+'/expressed_maps/' #linux
 	sns.set(context=P['plot_context'],style='white')
+	cm = plt.cm.get_cmap('seismic')
+	os.makedirs(opiniondir)
+	os.chdir(opiniondir)
 	for t in P['t_plot']:
-		cm = plt.cm.get_cmap('seismic')
 		df_t=dataframe.query("time==%s"%t).reset_index()
 		opinions=np.array(df_t['opinion'])/100
-		expressed=np.array(df_t['expressed'])/100
 		agentorder=np.array(df_t['agent']).astype(int)
 		X=[agentdict[i].x for i in agentorder]
 		Y=[agentdict[i].y for i in agentorder]
 		figure1, ax1 = plt.subplots(1, 1)
 		figure2, ax2 = plt.subplots(1, 1)
 		one=ax1.scatter(X,Y,P['gridsize']/3,c=opinions,vmin=0,vmax=1,cmap=cm)
-		two=ax2.scatter(X,Y,P['gridsize']/3,c=expressed,vmin=0,vmax=1,cmap=cm)
 		ax1.set(xlim=(0,P['gridsize']),ylim=(0,P['gridsize']),xticklabels=[],yticklabels=[])
-		ax2.set(xlim=(0,P['gridsize']),ylim=(0,P['gridsize']),xticklabels=[],yticklabels=[])
 		figure1.colorbar(one)
-		figure2.colorbar(two)
 		figure1.savefig('opinion_map_t=%s.png' %t)
-		figure2.savefig('expressed_map_t=%s.png' %t)
 		plt.close(figure1)
+	os.makedirs(expresseddir)
+	os.chdir(expresseddir)
+	for t in P['t_plot']:
+		df_t=dataframe.query("time==%s"%t).reset_index()
+		expressed=np.array(df_t['expressed'])/100
+		agentorder=np.array(df_t['agent']).astype(int)
+		X=[agentdict[i].x for i in agentorder]
+		Y=[agentdict[i].y for i in agentorder]
+		figure2, ax2 = plt.subplots(1, 1)
+		two=ax2.scatter(X,Y,P['gridsize']/3,c=expressed,vmin=0,vmax=1,cmap=cm)
+		ax2.set(xlim=(0,P['gridsize']),ylim=(0,P['gridsize']),xticklabels=[],yticklabels=[])
+		figure2.colorbar(two)
+		figure2.savefig('expressed_map_t=%s.png' %t)
 		plt.close(figure2)
+	os.chdir(datadir)	
 
 def plot_JSD(dataframe,jsd_dataframe,P):
 	import matplotlib.pyplot as plt
@@ -169,6 +197,10 @@ def plot_JSD(dataframe,jsd_dataframe,P):
 	ax1.plot(jsd_dataframe['time'],jsd_dataframe['JSD'])
 	ax1.set(ylim=(0,1),xlabel='time',ylabel='JSD')
 	figure1.savefig('JSD.png')
+
+
+
+
 
 def main():
 	import pandas as pd
@@ -185,6 +217,14 @@ def main():
 	dataframe=init_dataframe(P,agentdict)
 	jsd_dataframe=init_JSD(P)
 
+	'''Change Directory'''
+	root=os.getcwd()
+	addon=str(id_generator(9))
+	datadir=root+'/data/'+addon #Linux
+	# datadir=root+'\\data\\'+addon #Windows
+	os.makedirs(datadir) #linux
+	os.chdir(datadir) 
+
 	print 'Running Simulation...'
 	for t in np.arange(1,P['t_sim']+1):
 		sys.stdout.write("\r%d%%" %(100*t/P['t_sim']))
@@ -198,12 +238,6 @@ def main():
 			update_JSD(t,P,dataframe,jsd_dataframe)
 
 	print '\nExporting Data...'
-	root=os.getcwd()
-	addon=str(id_generator(9))
-	os.makedirs(root+'/data/'+addon) #linux
-	os.chdir(root+'/data/'+addon) 
-	# os.makedirs(root+'\\data\\'+addon) #pc
-	# os.chdir(root+'\\data\\'+addon)
 	dataframe.to_pickle('data.pkl')
 	jsd_dataframe.to_pickle('jsd.pkl')
 	param_df=pd.DataFrame([P])
@@ -213,11 +247,9 @@ def main():
 	plot_context='poster'
 	plot_JSD(dataframe,jsd_dataframe,P)
 	plot_opinion_trajectory(dataframe,P)
-	plot_histograms(dataframe,P)
-	plot_maps(agentdict,dataframe,P)
+	plot_histograms(dataframe,P,datadir)
+	plot_maps(agentdict,dataframe,P,datadir)
 	os.chdir(root)
-
-	return dataframe
 
 if __name__=='__main__':
 	main()
