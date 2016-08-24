@@ -1,0 +1,1 @@
+[{"index":0,"gridsize":316,"mean_conformity":0.5,"mean_init_opinion":50,"mean_intolerance":1.0,"mean_social_reach":11.0,"mean_susceptibility":5.0,"plot_context":"poster","popsize":1000,"seed":3,"std_conformity":0.3,"std_init_opinion":20,"std_intolerance":0.3,"std_social_reach":2,"std_susceptibility":0.3,"t_measure":50,"t_plot":[0,1000,2000,3000,4000,5000],"t_sim":5000}]
