@@ -2,7 +2,7 @@
 # July-August 2015, Updated August 2016
 # Generates data from the ISC model and compares it to empirical data on American Politics
 
-def init_evo_pop(popsize,evo_rng,sim_threshold,averages,issue):
+def init_evo_pop(popsize,evo_rng,sim_threshold,issue):
 	import numpy as np
 	evo_pop={}
 	# seed=evo_rng.randint(1,1000000000)
@@ -30,7 +30,6 @@ def init_evo_pop(popsize,evo_rng,sim_threshold,averages,issue):
 			'std_social_reach':4,
 			'plot_context':'poster',
 			'sim_threshold':sim_threshold,
-			'averages': averages,
 			'issue':issue,
 		}
 		evo_pop[i]={'P':P,'F':0.0} #P=parameters, F=fitness
@@ -134,72 +133,68 @@ def run(P):
 	import numpy as np
 	import sys
 
-	realizations=[]
-	for a in range(P['averages']):
-		# print 'Realization %s/%s' %(a+1,P['averages'])
-		# print '''Initializing Simulation'''
-		rng=P['rng'] #global rng
-		# rng=np.random.RandomState(seed=P['seed']) #the rng is the same every generation
-		agentdict=create_agents(P,rng)
-		network_agents(agentdict)
-		dataframe=init_dataframe(P,agentdict)
+	# print 'Realization %s/%s' %(a+1,P['averages'])
+	# print '''Initializing Simulation'''
+	rng=P['rng'] #global rng
+	# rng=np.random.RandomState(seed=P['seed']) #the rng is the same every generation
+	agentdict=create_agents(P,rng)
+	network_agents(agentdict)
+	dataframe=init_dataframe(P,agentdict)
 
-		# print 'Running Simulation...'
-		for t in np.arange(1,P['t_sim']+1):
-			sys.stdout.write("\r%d%%" %(100*t/P['t_sim']))
-			sys.stdout.flush()
-			order=np.array(agentdict.keys())
-			rng.shuffle(order)
-			for i in order: #randomize order of dialogue initiation
-				agentdict[i].hold_dialogue(rng)
-			if t % P['t_measure'] == 0:
-				update_dataframe(t,P['t_measure'],agentdict,dataframe)
+	# print 'Running Simulation...'
+	for t in np.arange(1,P['t_sim']+1):
+		sys.stdout.write("\r%d%%" %(100*t/P['t_sim']))
+		sys.stdout.flush()
+		order=np.array(agentdict.keys())
+		rng.shuffle(order)
+		for i in order: #randomize order of dialogue initiation
+			agentdict[i].hold_dialogue(rng)
+		if t % P['t_measure'] == 0:
+			update_dataframe(t,P['t_measure'],agentdict,dataframe)
 
-		# print '\nCalculating Similarity...'
-		brookman_dict=eval(open('brookman_data.txt').read())
-		max_similarity={'sim':0,'time':0,'expressed':None,'empirical':None}
-		empirical=[]
-		for opin in brookman_dict[P['issue']].iterkeys():
-			for count in range(brookman_dict[P['issue']][opin]):
-				empirical.append(int(opin))
-		C=np.histogram(empirical,bins=7,density=True)[0]
-		for t in np.arange(0,P['t_sim']/P['t_measure']):
-			expressed=dataframe.query("time==%s"%(t*P['t_measure']))['expressed']*6.0/100+1
-			B=np.histogram(expressed,bins=7,density=True)[0]
-			M_e = 0.5 * (B + C)
-			jsd_e=0.5*(stats.entropy(B,M_e)+stats.entropy(B,M_e))
-			sim=1.0-jsd_e
-			if sim > max_similarity['sim']:
-				max_similarity={'sim':sim,'time':t*P['t_measure'],
-									'expressed':expressed,'empirical':empirical}
+	# print '\nCalculating Similarity...'
+	brookman_dict=eval(open('brookman_data.txt').read())
+	max_similarity={'sim':0,'time':0,'expressed':None,'empirical':None}
+	empirical=[]
+	for opin in brookman_dict[P['issue']].iterkeys():
+		for count in range(brookman_dict[P['issue']][opin]):
+			empirical.append(int(opin))
+	C=np.histogram(empirical,bins=7,density=True)[0]
+	for t in np.arange(P['t_measure'],P['t_sim'],P['t_measure']):
+		expressed=dataframe.query("time==%s"%t)['expressed']*6.0/100+1
+		B=np.asfarray(np.histogram(expressed,bins=7)[0])
+		B/=np.sum(np.histogram(expressed,bins=7)[0])
+		M_e = 0.5 * (B + C)
+		jsd_e=0.5*(stats.entropy(B,M_e)+stats.entropy(B,M_e))
+		sim=1.0-jsd_e
+		if sim > max_similarity['sim']:
+			max_similarity={'sim':sim,'time':t,'expressed':expressed,'empirical':empirical}
 
-		if max_similarity['sim']>P['sim_threshold']:
-			print 'sim=%s, t=%s' %(max_similarity['sim'],max_similarity['time'])
-			root=os.getcwd()
-			addon='emp_'+str(id_generator(9))
-			os.makedirs(root+'/data/'+addon) #linux
-			os.chdir(root+'/data/'+addon) 
-			# os.makedirs(root+'\\data\\'+addon) #pc
-			# os.chdir(root+'\\data\\'+addon)
-			dataframe.to_pickle('data.pkl')
-			param_df=pd.DataFrame([P])
-			param_df.reset_index().to_json('parameters.json',orient='records')
-			sns.set(context=P['plot_context'])
-			figure1, ax1 = plt.subplots(1, 1)
-			sns.distplot(max_similarity['empirical'],bins=range(1,8,1),
-							norm_hist=True,kde=False,ax=ax1,label='empirical')
-			sns.distplot(max_similarity['expressed'],bins=range(1,8,1),
-							norm_hist=True,kde=False,ax=ax1,label='model'),
-			plt.legend()
-			ax1.set(xlim=(1,7))
-			figure1.savefig('issue=%s_sim=%s_t=%s.png' \
-				%(P['issue'],max_similarity['sim'],max_similarity['time']))
-			plt.close(figure1)
-			os.chdir(root)
+	if max_similarity['sim']>P['sim_threshold']:
+		print 'sim=%s, t=%s' %(max_similarity['sim'],max_similarity['time'])
+		root=os.getcwd()
+		addon='emp_sim_%s' %max_similarity['sim'] + str(id_generator(9))
+		os.makedirs(root+'/data/'+addon) #linux
+		os.chdir(root+'/data/'+addon) 
+		# os.makedirs(root+'\\data\\'+addon) #pc
+		# os.chdir(root+'\\data\\'+addon)
+		dataframe.to_pickle('data.pkl')
+		param_df=pd.DataFrame([P])
+		param_df.reset_index().to_json('parameters.json',orient='records')
+		sns.set(context=P['plot_context'])
+		figure1, ax1 = plt.subplots(1, 1)
+		sns.distplot(max_similarity['empirical'],bins=range(1,8,1),
+						norm_hist=True,kde=False,ax=ax1,label='empirical')
+		sns.distplot(max_similarity['expressed'],bins=range(1,8,1),
+						norm_hist=True,kde=False,ax=ax1,label='model'),
+		plt.legend()
+		ax1.set(xlim=(1,7))
+		figure1.savefig('issue=%s_sim=%s_t=%s.png' \
+			%(P['issue'],max_similarity['sim'],max_similarity['time']))
+		plt.close(figure1)
+		os.chdir(root)
 
-		realizations.append(max_similarity['sim'])
-
-	return [P,np.average(realizations)]
+	return [P,max_similarity['sim']]
 
 def export_pop(evo_pop):
 	from ISC import id_generator
@@ -223,18 +218,17 @@ def main():
 
 
 	issue='abortion'
-	evo_seed=7
+	evo_seed=3
 	generations=10
 	popsize=100 #even
 	threads=10
-	size_tournaments=20
+	size_tournaments=3
 	mutation_rate=0.2
 	mutation_amount=0.1
 	sim_threshold=0.99
-	averages=1
 
 	evo_rng=np.random.RandomState(seed=evo_seed)
-	evo_pop=init_evo_pop(popsize,evo_rng,sim_threshold,averages,issue)
+	evo_pop=init_evo_pop(popsize,evo_rng,sim_threshold,issue)
 	pool = Pool(nodes=threads)
 
 	for g in range(generations):

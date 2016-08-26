@@ -2,10 +2,11 @@
 # July-August 2015, Updated August 2016
 # Generates data from the ISC model and compares it to empirical data on American Politics
 
-def search_space(seed_rng):
+def search_space():
 	from hyperopt import hp
+	import numpy as np
 	space={
-		'seed': seed_rng.randint(1,1000000000),
+		'rng': np.random.RandomState(),
 		'mean_intolerance': hp.quniform('mean_intolerance',0.7,1.0,0.1),
 		'mean_susceptibility':hp.quniform('mean_susceptibility',1,10,1),
 		'mean_conformity': hp.quniform('mean_conformity',0,1,0.1),
@@ -13,15 +14,15 @@ def search_space(seed_rng):
 		'std_susceptibility': hp.quniform('std_susceptibility',0,0.5,0.1),
 		'std_conformity': hp.quniform('std_conformity',0,0.5,0.1),
 		'gridsize':316,
-		'popsize':1000,
+		'popsize':100,
 		't_sim':1000,
 		't_measure':50,
 		'mean_init_opinion':50,
 		'std_init_opinion':20,
 		'mean_social_reach':22.0,
 		'std_social_reach':4,
-		'sim_threshold':0.99,
-		'issue':'abortion',
+		'sim_threshold':0.98,
+		'issue':'gun_control',
 	}
 	return space
 
@@ -38,7 +39,8 @@ def objective(P):
 	import sys
 	from hyperopt import STATUS_OK
 
-	rng=np.random.RandomState(seed=P['seed']) #the rng is the same every generation
+	rng=P['rng']
+	# rng=np.random.RandomState(seed=P['seed']) #the rng is the same every generation
 	agentdict=create_agents(P,rng)
 	network_agents(agentdict)
 	dataframe=init_dataframe(P,agentdict)
@@ -62,20 +64,20 @@ def objective(P):
 		for count in range(brookman_dict[P['issue']][opin]):
 			empirical.append(int(opin))
 	C=np.histogram(empirical,bins=7,density=True)[0]
-	for t in np.arange(0,P['t_sim']/P['t_measure']):
-		expressed=dataframe.query("time==%s"%(t*P['t_measure']))['expressed']*6.0/100+1
-		B=np.histogram(expressed,bins=7,density=True)[0]
+	for t in np.arange(P['t_measure'],P['t_sim'],P['t_measure']):
+		expressed=dataframe.query("time==%s"%t)['expressed']*6.0/100+1
+		B=np.asfarray(np.histogram(expressed,bins=7)[0])
+		B/=np.sum(np.histogram(expressed,bins=7)[0])
 		M_e = 0.5 * (B + C)
 		jsd_e=0.5*(stats.entropy(B,M_e)+stats.entropy(B,M_e))
 		sim=1.0-jsd_e
 		if sim > max_similarity['sim']:
-			max_similarity={'sim':sim,'time':t*P['t_measure'],
-								'expressed':expressed,'empirical':empirical}
+			max_similarity={'sim':sim,'time':t,'expressed':expressed,'empirical':empirical}
 
 	if max_similarity['sim']>P['sim_threshold']:
 		print 'sim=%s, t=%s' %(max_similarity['sim'],max_similarity['time'])
 		root=os.getcwd()
-		addon='emp_'+str(id_generator(9))
+		addon='emp_sim_%s' %max_similarity['sim'] + str(id_generator(9))
 		os.makedirs(root+'/data/'+addon) #linux
 		os.chdir(root+'/data/'+addon) 
 		# os.makedirs(root+'\\data\\'+addon) #pc
@@ -104,16 +106,13 @@ def main():
 	# freeze_support()
 	from hyperopt import fmin,tpe,hp,Trials
 	from hyperopt.mongoexp import MongoTrials
-	import numpy as np
 	import matplotlib.pyplot as plt
 	import seaborn as sns
 
-	master_seed=3
-	seed_rng=np.random.RandomState(seed=master_seed)
-	space=search_space(seed_rng)
+	space=search_space()
 	trials=Trials()
 	# trials=MongoTrials('mongo://localhost:1234/foo_db/jobs', exp_key='exp1')
-	best=fmin(objective,space=space,algo=tpe.suggest,max_evals=4,trials=trials)
+	best=fmin(objective,space=space,algo=tpe.suggest,max_evals=100,trials=trials)
 
 	# print()
 	# for t in range(len(trials.trials)):
