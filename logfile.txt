@@ -1,0 +1,5 @@
+INFO (hyperopt.mongoexp): job exception: global name 'directory' is not defined
+INFO (hyperopt.mongoexp): job exception: global name 'directory' is not defined
+INFO (hyperopt.mongoexp): job exception: global name 'directory' is not defined
+INFO (hyperopt.mongoexp): job exception: global name 'directory' is not defined
+INFO (hyperopt.mongoexp): job exception: global name 'directory' is not defined

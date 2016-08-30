@@ -10,10 +10,12 @@ def init_directory(fit_params):
 	root=os.getcwd()
 	addon='emp_'+fit_params['issue']+'_'+fit_params['optimization']+'_'+\
 		str(''.join(random.choice(string.ascii_uppercase+string.digits) for _ in range(6)))
-	os.makedirs(root+'/data/'+addon) #linux
-	os.chdir(root+'/data/'+addon) 
+	directory=root+'/data/'+addon
+	os.makedirs(directory) #linux
+	os.chdir(directory) 
 	# os.makedirs(root+'\\data\\'+addon) #pc
 	# os.chdir(root+'\\data\\'+addon)
+	return directory
 
 '''evolutionary methods-----------------------------------------------------------------------'''
 def init_evo_pop(fit_params):
@@ -25,11 +27,14 @@ def init_evo_pop(fit_params):
 		P={
 			'seed':pop_seeds[i],
 			'mean_intolerance':np.round(rng.uniform(0.7,1.0),decimals=1),
-			'mean_susceptibility':np.round(rng.uniform(1,10),decimals=0),
-			'mean_conformity':np.round(rng.uniform(0,1),decimals=1),
-			'std_intolerance':np.round(rng.uniform(0,0.5),decimals=1),
-			'std_susceptibility':np.round(rng.uniform(0,0.5),decimals=1),
-			'std_conformity':np.round(rng.uniform(0,0.5),decimals=1),
+			'mean_susceptibility':np.round(rng.uniform(1,5),decimals=0),
+			'mean_conformity':np.round(rng.uniform(0.1,0.5),decimals=1),
+			'std_intolerance':0.3,
+			'std_susceptibility':0.7,
+			'std_conformity':0.3,
+			# 'std_intolerance':np.round(rng.uniform(0.1,0.5),decimals=1),
+			# 'std_susceptibility':np.round(rng.uniform(0.1,0.5),decimals=1),
+			# 'std_conformity':np.round(rng.uniform(0.1,0.5),decimals=1),
 			'gridsize':fit_params['gridsize'],
 			'popsize':fit_params['popsize'],
 			't_sim':fit_params['t_sim'],
@@ -42,6 +47,7 @@ def init_evo_pop(fit_params):
 			'issue':fit_params['issue'],
 			'optimization':fit_params['optimization'],
 			'loss_metric':fit_params['loss_metric'],
+			'averages':fit_params['averages'],
 		}
 		evo_pop[i]={'P':P,'F':0.0} #P=parameters, F=fitness
 	return evo_pop
@@ -95,11 +101,11 @@ def mutate(remade_evo_pop,old_evo_pop,fit_params):
 	i=0
 	for ind in remade_evo_pop.iterkeys():
 		for param in remade_evo_pop[ind]['P'].iterkeys():
-			if param == 'mean_intolerance' or param == 'mean_susceptibility' \
-			or param == 'mean_conformity' or param == 'std_intolerance' \
-			or param =='std_susceptibility' or param =='std_conformity':
+			if param == 'mean_intolerance' or param == 'mean_susceptibility' or param == 'mean_conformity':
+			# or param == 'std_intolerance' or param =='std_susceptibility' or param =='std_conformity':
 				if np.random.uniform(0,1)<fit_params['mutation_rate']:
 					change=fit_params['mutation_amount']*(1-2*np.random.randint(0,1))
+					if param == 'mean_susceptibility': change*=5.0
 					mutated_pop[i]['P'][param]=remade_evo_pop[ind]['P'][param]+change
 				else:
 					mutated_pop[i]['P'][param]=remade_evo_pop[ind]['P'][param]
@@ -117,9 +123,8 @@ def crossover(evo_pop): #uniform crossover method
 		child1=parent1
 		child2=parent2
 		for param in parent1['P'].iterkeys():
-			if param == 'mean_intolerance' or param == 'mean_susceptibility' \
-			or param == 'mean_conformity' or param == 'std_intolerance' \
-			or param =='std_susceptibility' or param =='std_conformity':
+			if param == 'mean_intolerance' or param == 'mean_susceptibility' or param == 'mean_conformity':
+			# or param == 'std_intolerance' or param =='std_susceptibility' or param =='std_conformity':
 				if np.random.uniform(0,1)<0.5:
 					child1['P'][param]=parent1['P'][param]
 					child2['P'][param]=parent2['P'][param]
@@ -135,13 +140,16 @@ def search_space(fit_params):
 	from hyperopt import hp
 	import numpy as np
 	space={
-		'seed': np.random.randint(1,1000000000),
+		'seed': None,#np.random.randint(1,1000000000),
 		'mean_intolerance': hp.quniform('mean_intolerance',0.7,1.0,0.1),
-		'mean_susceptibility':hp.quniform('mean_susceptibility',1,10,1),
-		'mean_conformity': hp.quniform('mean_conformity',0,1,0.1),
-		'std_intolerance': hp.quniform('std_intolerance',0,0.5,0.1),
-		'std_susceptibility': hp.quniform('std_susceptibility',0,0.5,0.1),
-		'std_conformity': hp.quniform('std_conformity',0,0.5,0.1),
+		'mean_susceptibility':hp.quniform('mean_susceptibility',1,5,1),
+		'mean_conformity': hp.quniform('mean_conformity',0.1,0.5,0.1),
+		'std_intolerance': 0.3,
+		'std_susceptibility': 0.7,
+		'std_conformity': 0.3,
+		# 'std_intolerance': hp.quniform('std_intolerance',0.1,0.5,0.1),
+		# 'std_susceptibility': hp.quniform('std_susceptibility',0.1,0.5,0.1),
+		# 'std_conformity': hp.quniform('std_conformity',0.1,0.5,0.1),
 		'gridsize':fit_params['gridsize'],
 		'popsize':fit_params['popsize'],
 		't_sim':fit_params['t_sim'],
@@ -154,6 +162,7 @@ def search_space(fit_params):
 		'issue':fit_params['issue'],
 		'optimization':fit_params['optimization'],
 		'loss_metric':fit_params['loss_metric'],
+		'averages':fit_params['averages'],
 	}
 	return space
 
@@ -188,8 +197,8 @@ def calculate_similarity(P,dataframe):
 
 	for t in np.arange(P['t_measure'],P['t_sim'],P['t_measure']):
 		expressed=dataframe.query("time==%s"%t)['expressed']*6.0/100+1
-		B=np.asfarray(np.histogram(expressed,bins=7)[0])
-		B/=np.sum(np.histogram(expressed,bins=7)[0])
+		B=np.asfarray(np.histogram(expressed,bins=[1,2,3,4,5,6,7,8])[0])
+		B/=np.sum(np.histogram(expressed,bins=[1,2,3,4,5,6,7,8])[0])
 		if P['loss_metric']=='JSD':
 			M_e = 0.5 * (B + C)
 			jsd_e=0.5*(stats.entropy(B,M_e)+stats.entropy(B,M_e))
@@ -197,9 +206,9 @@ def calculate_similarity(P,dataframe):
 		if P['loss_metric']=='RMSE':
 			sim=1-np.sqrt(np.average((B-C)**2))
 		if sim > info['sim']: info={'sim':sim,'time':t,'expressed':expressed,'empirical':empirical}
-
 	if info['sim']>P['sim_threshold']:
 		print 'sim=%s, t=%s' %(info['sim'],info['time'])
+		if P['optimization']=='mongodb': os.chdir(P['directory'])
 		dataframe.to_pickle('data_sim=%s.pkl' %info['sim'])
 		param_df=pd.DataFrame([P])
 		param_df.reset_index().to_json('parameters_sim=%s.json'%info['sim'],orient='records')
@@ -219,31 +228,37 @@ def calculate_similarity(P,dataframe):
 '''main-----------------------------------------------------------------------'''
 def run(P):
 	from ISC import create_agents,network_agents,init_dataframe,update_dataframe
+	from fit_empirical_ISC import calculate_similarity
 	from hyperopt import STATUS_OK
 	import numpy as np
 	import sys
 
-	if P['optimization']=='hyperopt':
-		rng=np.random.RandomState(seed=np.random.randint(1,1000000000))
-	if P['optimization']=='evolve':
-		rng=np.random.RandomState(seed=P['seed'])
-	agentdict=create_agents(P,rng)
-	network_agents(agentdict)
-	dataframe=init_dataframe(P,agentdict)
+	losses=[]
+	for a in range(P['averages']):
+		if P['optimization']=='hyperopt' or P['optimization']=='mongodb':
+			rng=np.random.RandomState(seed=np.random.randint(1,1000000000))
+		if P['optimization']=='evolve':
+			rng=np.random.RandomState(seed=P['seed'])
+			P['seed']=P['seed']+rng.randint(1,1000000000)
+			# print rng.randint(1,1000000000)
+		agentdict=create_agents(P,rng)
+		network_agents(agentdict)
+		dataframe=init_dataframe(P,agentdict)
 
-	for t in np.arange(1,P['t_sim']+1):
-		sys.stdout.write("\r%d%%" %(100*t/P['t_sim']))
-		sys.stdout.flush()
-		order=np.array(agentdict.keys())
-		rng.shuffle(order)
-		for i in order: agentdict[i].hold_dialogue(rng)
-		if t % P['t_measure'] == 0: update_dataframe(t,P['t_measure'],agentdict,dataframe)
+		for t in np.arange(1,P['t_sim']+1):
+			sys.stdout.write("\r%d%%" %(100*t/P['t_sim']))
+			sys.stdout.flush()
+			order=np.array(agentdict.keys())
+			rng.shuffle(order)
+			for i in order: agentdict[i].hold_dialogue(rng)
+			if t % P['t_measure'] == 0: update_dataframe(t,P['t_measure'],agentdict,dataframe)
+		loss=calculate_similarity(P,dataframe)
+		losses.append(loss)
 
-	loss=calculate_similarity(P,dataframe)
-	if P['optimization']=='hyperopt':
-		return {'loss': loss, 'status': STATUS_OK}
+	if P['optimization']=='hyperopt' or P['optimization']=='mongodb':
+		return {'loss': np.average(losses), 'status': STATUS_OK}
 	if P['optimization']=='evolve':
-		return [P,1-loss]
+		return [P,1-np.average(losses)]
 
 def main():
 	from hyperopt import fmin,tpe,hp,Trials
@@ -252,12 +267,24 @@ def main():
 	import os 
 
 	fit_params=eval(open('fitting_parameters.txt').read())
-	init_directory(fit_params)
+	directory=init_directory(fit_params)
 
 	if fit_params['optimization']=='hyperopt':
 		space=search_space(fit_params)
 		trials=Trials()
-		# trials=MongoTrials('mongo://localhost:1234/foo_db/jobs', exp_key='exp1')
+		best=fmin(run,space=space,algo=tpe.suggest,max_evals=fit_params['max_evals'],trials=trials)
+		plot_results(trials.trials)
+
+	#https://github.com/hyperopt/hyperopt/wiki/Parallelizing-Evaluations-During-Search-via-MongoDB
+	#mongod --dbpath . --port 1234
+	'''
+	export PYTHONPATH=$PYTHONPATH:/home/pduggins/influence_susceptibility_conformity
+	hyperopt-mongo-worker --mongo=localhost:1234/foo_db --poll-interval=0.1
+	'''
+	if fit_params['optimization']=='mongodb':
+		space=search_space(fit_params)
+		space['directory']=directory
+		trials=MongoTrials('mongo://localhost:1234/foo_db/jobs', exp_key='exp4')
 		best=fmin(run,space=space,algo=tpe.suggest,max_evals=fit_params['max_evals'],trials=trials)
 		plot_results(trials.trials)
 
@@ -273,14 +300,16 @@ def main():
 		for g in range(fit_params['generations']):
 			exp_params=[value['P'] for value in evo_pop.itervalues()]
 			fitness_list=pool.map(run, exp_params)
-			new_gen_list=tournament_selection(fitness_list,fit_params)
-			# new_gen_list=rank_proportional_selection(fitness_list,evo_rng)
+			# new_gen_list=tournament_selection(fitness_list,fit_params)
+			new_gen_list=rank_proportional_selection(fitness_list)
 			remade_pop=remake(evo_pop,new_gen_list)
 			mutated_pop=mutate(remade_pop,evo_pop,fit_params)
-			crossed_pop=crossover(mutated_pop)
-			evo_pop=crossed_pop
-			print '\ngen %s mean F = %s' \
-				%(g,np.average([evo_pop[ind]['F'] for ind in evo_pop.iterkeys()]))
+			evo_pop=mutated_pop
+			# crossed_pop=crossover(mutated_pop)
+			# evo_pop=crossed_pop
+			mean_F=np.average([evo_pop[ind]['F'] for ind in evo_pop.iterkeys()])
+			std_F=np.std([evo_pop[ind]['F'] for ind in evo_pop.iterkeys()])
+			print '\nGeneration %s: mean_F=%s, std F=%s' %(g,mean_F,std_F) 
 
 		out_pop=pd.DataFrame([evo_pop])
 		out_pop.reset_index().to_json('evo_pop.json',orient='records')
