@@ -10,7 +10,7 @@ Install
 2. Open a terminal (Max/Linux) or a command prompt (Windows)
 3. Enter 'git clone https://github.com/psipeter/influence_susceptibility_conformity.git'
 
-# Install necessary packages
+## Install necessary packages
 1. Python 2.7.X (https://www.python.org/downloads/)
 2. The SciPy Stack: Matplotlib, Numpy, Scipy, and Pandas (https://www.scipy.org/install.html)
 3. Seaborn (https://stanford.edu/~mwaskom/software/seaborn/installing.html)

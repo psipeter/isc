@@ -43,11 +43,13 @@ def init_evo_pop(fit_params):
 			'std_init_opinion':fit_params['std_init_opinion'],
 			'mean_social_reach':fit_params['mean_social_reach'],
 			'std_social_reach':fit_params['std_social_reach'],
-			'sim_threshold':fit_params['sim_threshold'],
-			'issue':fit_params['issue'],
+			'dataset':fit_params['dataset'],
 			'optimization':fit_params['optimization'],
+			'sim_threshold':fit_params['sim_threshold'],
 			'loss_metric':fit_params['loss_metric'],
+			'issue':fit_params['issue'],
 			'averages':fit_params['averages'],
+			't_sim_2':fit_params['t_sim_2'],
 		}
 		evo_pop[i]={'P':P,'F':0.0} #P=parameters, F=fitness
 	return evo_pop
@@ -158,11 +160,13 @@ def search_space(fit_params):
 		'std_init_opinion':fit_params['std_init_opinion'],
 		'mean_social_reach':fit_params['mean_social_reach'],
 		'std_social_reach':fit_params['std_social_reach'],
-		'sim_threshold':fit_params['sim_threshold'],
-		'issue':fit_params['issue'],
+		'dataset':fit_params['dataset'],
 		'optimization':fit_params['optimization'],
+		'sim_threshold':fit_params['sim_threshold'],
 		'loss_metric':fit_params['loss_metric'],
+		'issue':fit_params['issue'],
 		'averages':fit_params['averages'],
+		't_sim_2':fit_params['t_sim_2'],
 	}
 	return space
 
@@ -178,7 +182,7 @@ def plot_results(trials):
 	plt.show()
 
 '''shared methods-----------------------------------------------------------------------'''
-def calculate_similarity(P,dataframe):
+def calculate_similarity(P,dataframe,agentdict,rng):
 	from scipy import stats
 	import pandas as pd
 	import matplotlib.pyplot as plt
@@ -186,44 +190,135 @@ def calculate_similarity(P,dataframe):
 	import numpy as np
 	import os
 
-	brookman_dir='/home/pduggins/influence_susceptibility_conformity/brookman_data.txt'
-	brookman_dict=eval(open(brookman_dir).read())
-	info={'sim':0,'time':0,'expressed':None,'empirical':None}
-	empirical=[]
-	for opin in brookman_dict[P['issue']].iterkeys():
-		for count in range(brookman_dict[P['issue']][opin]):
-			empirical.append(int(opin))
-	C=np.histogram(empirical,bins=[1,2,3,4,5,6,7,8],density=True)[0]
+	if P['dataset']=='broockman':
+		brookman_dir='/home/pduggins/influence_susceptibility_conformity/brookman_data.txt'
+		brookman_dict=eval(open(brookman_dir).read())
+		info={'sim':0,'time':0,'expressed':None,'empirical':None}
+		empirical=[]
+		for opin in brookman_dict[P['issue']].iterkeys():
+			for count in range(brookman_dict[P['issue']][opin]):
+				empirical.append(int(opin))
+		C=np.histogram(empirical,bins=[1,2,3,4,5,6,7,8],density=True)[0]
 
-	for t in np.arange(P['t_measure'],P['t_sim'],P['t_measure']):
-		expressed=dataframe.query("time==%s"%t)['expressed']*6.0/100+1
-		B=np.asfarray(np.histogram(expressed,bins=[1,2,3,4,5,6,7,8])[0])
-		B/=np.sum(np.histogram(expressed,bins=[1,2,3,4,5,6,7,8])[0])
-		if P['loss_metric']=='JSD':
-			M_e = 0.5 * (B + C)
-			jsd_e=0.5*(stats.entropy(B,M_e)+stats.entropy(B,M_e))
-			sim=1.0-jsd_e
-		if P['loss_metric']=='RMSE':
-			sim=1-np.sqrt(np.average((B-C)**2))
-		if sim > info['sim']: info={'sim':sim,'time':t,'expressed':expressed,'empirical':empirical}
-	if info['sim']>P['sim_threshold']:
-		print 'sim=%s, t=%s' %(info['sim'],info['time'])
-		if P['optimization']=='mongodb': os.chdir(P['directory'])
-		dataframe.to_pickle('data_sim=%s.pkl' %info['sim'])
-		param_df=pd.DataFrame([P])
-		param_df.reset_index().to_json('parameters_sim=%s.json'%info['sim'],orient='records')
-		sns.set(context='poster')
-		figure1, ax1 = plt.subplots(1, 1)
-		sns.distplot(info['empirical'],bins=[1,2,3,4,5,6,7,8],
-						norm_hist=True,kde=False,ax=ax1,label='empirical')
-		sns.distplot(info['expressed'],bins=[1,2,3,4,5,6,7,8],
-						norm_hist=True,kde=False,ax=ax1,label='model'),
-		plt.legend()
-		ax1.set(title='%s'%P['issue'])
-		figure1.savefig('sim=%s_t=%s.png' %(info['sim'],info['time']))
-		plt.close(figure1)
+		for t in np.arange(P['t_measure'],P['t_sim'],P['t_measure']):
+			expressed=dataframe.query("time==%s"%t)['expressed']*6.0/100+1
+			B=np.asfarray(np.histogram(expressed,bins=[1,2,3,4,5,6,7,8])[0])
+			B/=np.sum(np.histogram(expressed,bins=[1,2,3,4,5,6,7,8])[0])
+			if P['loss_metric']=='JSD':
+				M_e = 0.5 * (B + C)
+				jsd_e=0.5*(stats.entropy(B,M_e)+stats.entropy(B,M_e))
+				sim=1.0-jsd_e
+			if P['loss_metric']=='RMSE':
+				sim=1-np.sqrt(np.average((B-C)**2))
+			if sim > info['sim']: info={'sim':sim,'time':t,'expressed':expressed,'empirical':empirical}
+		final_sim=info['sim']
 
-	return 1.0-info['sim']
+		if final_sim>P['sim_threshold']:
+			print 'sim=%s, t=%s' %(final_sim,info['time'])
+			if P['optimization']=='mongodb': os.chdir(P['directory'])
+			dataframe.to_pickle('data_sim=%s.pkl' %final_sim)
+			param_df=pd.DataFrame([P])
+			param_df.reset_index().to_json('parameters_sim=%s.json'%final_sim,orient='records')
+			sns.set(context='poster')
+			figure1, ax1 = plt.subplots(1, 1)
+			sns.distplot(info['empirical'],bins=[1,2,3,4,5,6,7,8],
+							norm_hist=True,kde=False,ax=ax1,label='empirical')
+			sns.distplot(info['expressed'],bins=[1,2,3,4,5,6,7,8],
+							norm_hist=True,kde=False,ax=ax1,label='model'),
+			plt.legend()
+			ax1.set(title='%s'%P['issue'])
+			figure1.savefig('sim=%s_t=%s.png' %(final_sim,info['time']))
+			plt.close(figure1)
+
+	if P['dataset']=='pew':
+		pew_dir='/home/pduggins/influence_susceptibility_conformity/pew_data.txt'
+		pew_dict=eval(open(pew_dir).read())
+		info={}
+		C={}
+		empirical={}
+		for date in pew_dict.iterkeys():
+			empirical[date]=[]
+			for opin in pew_dict[date].iterkeys():
+				for count in range(int(100*pew_dict[date][opin])):
+					empirical[date].append(int(opin))
+			C[date]=np.histogram(empirical[date],bins=np.arange(-10,11),density=True)[0]
+			info[date]={'sim':0,'time':0,'expressed':None,'empirical':None}
+
+		#compare all simulated data with the first date entry in pew_dict
+		expressed={}
+		for t in np.arange(P['t_measure'],P['t_sim'],P['t_measure']):
+			expressed[t]=dataframe.query("time==%s"%t)['expressed']/5.0-10
+			B=np.asfarray(np.histogram(expressed[t],bins=np.arange(-10,11))[0])
+			B/=np.sum(np.histogram(expressed[t],bins=np.arange(-10,11))[0])
+			if P['loss_metric']=='JSD':
+				M_e = 0.5 * (B + C['1994'])
+				jsd_e=0.5*(stats.entropy(B,M_e)+stats.entropy(B,M_e))
+				sim=1.0-jsd_e
+			if P['loss_metric']=='RMSE':
+				sim=1-np.sqrt(np.average((B-C['1994'])**2))
+			if sim > info['1994']['sim']:
+				info['1994']={'sim':sim,'time':t,'expressed':expressed[t],'empirical':empirical[date]}
+
+		#if the first date (1994) passes threshold, simulate more timesteps
+		if info['1994']['sim']>P['sim_threshold']:
+			for t in np.arange(P['t_sim'],P['t_sim_2']+1):
+				sys.stdout.write("\r%d%%" %(100*t/(P['t_sim']+P['t_sim_2'])))
+				sys.stdout.flush()
+				order=np.array(agentdict.keys())
+				rng.shuffle(order)
+				for i in order: agentdict[i].hold_dialogue(rng)
+				if t % P['t_measure'] == 0: update_dataframe(t,P['t_measure'],agentdict,dataframe)
+
+			#measure the similarity to the last date (2014), with 3 measures in between
+			for t in np.arange(info['1994']['time']+4*P['t_measure'],P['t_sim_2'],P['t_measure']):
+				expressed[t]=dataframe.query("time==%s"%t)['expressed']/5.0-10
+				B=np.asfarray(np.histogram(expressed[t],bins=np.arange(-10,11))[0])
+				B/=np.sum(np.histogram(expressed[t],bins=np.arange(-10,11))[0])
+				if P['loss_metric']=='JSD':
+					M_e = 0.5 * (B + C['2014'])
+					jsd_e=0.5*(stats.entropy(B,M_e)+stats.entropy(B,M_e))
+					sim=1.0-jsd_e
+				if P['loss_metric']=='RMSE':
+					sim=1-np.sqrt(np.average((B-C['2014'])**2))
+				if sim > info['2014']['sim']:
+					info['2014']={'sim':sim,'time':t,'expressed':expressed[t],'empirical':empirical[date]}
+	
+			#if the last date also passes the threshold, fitness is the average of their similarity 
+			#and plot the intermediate distributions
+			if info['2014']['sim']>P['sim_threshold']:
+				if P['optimization']=='mongodb': os.chdir(P['directory'])
+				final_sim=np.average([info['1994']['sim'],info['2014']['sim']])
+				print 'final_sim=%s' %final_sim
+				dataframe.to_pickle('data_sim=%s.pkl' %final_sim)
+				param_df=pd.DataFrame([P])
+				param_df.reset_index().to_json('parameters_sim=%s.json'%final_sim,orient='records')
+				t_plot={}
+				t_plot['1994']=info['1994']['time']
+				t_plot['2014']=info['2014']['time']
+				delta=(t_plot['2014']-t_plot['1994'])/(4*P['t_measure'])
+				t_plot['1999']=t_plot['1994']+P['t_measure']*np.floor(delta)
+				t_plot['2004']=t_plot['1994']+P['t_measure']*np.floor(2*delta)
+				t_plot['2011']=t_plot['1994']+P['t_measure']*np.floor(3*delta)
+				info['1999']={'sim':None,'time':t_plot['1999'],'expressed':expressed[t_plot['1999']],'empirical':empirical['1999']}
+				info['2004']={'sim':None,'time':t_plot['2004'],'expressed':expressed[t_plot['2004']],'empirical':empirical['2004']}
+				info['2011']={'sim':None,'time':t_plot['2011'],'expressed':expressed[t_plot['2011']],'empirical':empirical['2011']}
+				for date in t_plot.iterkeys():
+					sns.set(context='poster')
+					figure1, ax1 = plt.subplots(1, 1)
+					sns.distplot(info[date]['empirical'],bins=np.arange(-10,11),
+									norm_hist=True,kde=False,ax=ax1,label='empirical')
+					sns.distplot(info[date]['expressed'],bins=np.arange(-10,11),
+									norm_hist=True,kde=False,ax=ax1,label='model'),
+					plt.legend()
+					ax1.set(title='%s'%date)
+					figure1.savefig('date=%s_sim=%s_t=%s.png' %(date,final_sim,t_plot[date]))
+					plt.close(figure1)	
+			else:
+				final_sim=info['1994']['sim']
+		else:
+			final_sim=info['1994']['sim']
+
+	return 1.0-final_sim
 
 '''main-----------------------------------------------------------------------'''
 def run(P):
@@ -252,7 +347,7 @@ def run(P):
 			rng.shuffle(order)
 			for i in order: agentdict[i].hold_dialogue(rng)
 			if t % P['t_measure'] == 0: update_dataframe(t,P['t_measure'],agentdict,dataframe)
-		loss=calculate_similarity(P,dataframe)
+		loss=calculate_similarity(P,dataframe,agentdict,rng)
 		losses.append(loss)
 
 	if P['optimization']=='hyperopt' or P['optimization']=='mongodb':
@@ -276,8 +371,8 @@ def main():
 		plot_results(trials.trials)
 
 	#https://github.com/hyperopt/hyperopt/wiki/Parallelizing-Evaluations-During-Search-via-MongoDB
-	#mongod --dbpath . --port 1234
-	'''
+	''' commands for MongoDB
+	mongod --dbpath . --port 1234
 	export PYTHONPATH=$PYTHONPATH:/home/pduggins/influence_susceptibility_conformity
 	hyperopt-mongo-worker --mongo=localhost:1234/foo_db --poll-interval=0.1
 	'''
