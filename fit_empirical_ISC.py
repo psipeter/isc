@@ -193,7 +193,7 @@ def calculate_similarity(P,dataframe):
 	for opin in brookman_dict[P['issue']].iterkeys():
 		for count in range(brookman_dict[P['issue']][opin]):
 			empirical.append(int(opin))
-	C=np.histogram(empirical,bins=7,density=True)[0]
+	C=np.histogram(empirical,bins=[1,2,3,4,5,6,7,8],density=True)[0]
 
 	for t in np.arange(P['t_measure'],P['t_sim'],P['t_measure']):
 		expressed=dataframe.query("time==%s"%t)['expressed']*6.0/100+1
@@ -214,12 +214,12 @@ def calculate_similarity(P,dataframe):
 		param_df.reset_index().to_json('parameters_sim=%s.json'%info['sim'],orient='records')
 		sns.set(context='poster')
 		figure1, ax1 = plt.subplots(1, 1)
-		sns.distplot(info['empirical'],bins=range(1,8,1),
+		sns.distplot(info['empirical'],bins=[1,2,3,4,5,6,7,8],
 						norm_hist=True,kde=False,ax=ax1,label='empirical')
-		sns.distplot(info['expressed'],bins=range(1,8,1),
+		sns.distplot(info['expressed'],bins=[1,2,3,4,5,6,7,8],
 						norm_hist=True,kde=False,ax=ax1,label='model'),
 		plt.legend()
-		ax1.set(xlim=(1,7))
+		ax1.set(title='%s'%P['issue'])
 		figure1.savefig('sim=%s_t=%s.png' %(info['sim'],info['time']))
 		plt.close(figure1)
 
