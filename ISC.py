@@ -2,6 +2,25 @@
 # July-August 2015, Updated August 2016
 # Influence, Susceptibility, and Conformity Model
 
+'''Initialization ###########################################'''
+
+def ch_dir():
+	#change directory for data and plot outputs
+	import os
+	import sys
+	import string
+	import random
+	root=os.getcwd()
+	addon=str(''.join(random.choice(string.ascii_uppercase+string.digits) for _ in range(9)))
+	datadir=''
+	if sys.platform == "linux" or sys.platform == "linux2" or sys.platform == "darwin":
+		datadir=root+'/data/'+addon #linux or mac
+	elif sys.platform == "win32":
+		datadir=root+'\\data\\'+addon #windows
+	os.makedirs(datadir)
+	os.chdir(datadir) 
+	return datadir
+
 def import_params(filename):
 	the_params=eval(open(filename).read())
 	return the_params
@@ -59,12 +78,6 @@ def update_JSD(time,params,dataframe,jsd_dataframe):
 	jsd_dataframe.loc[start]=[time,jsd] #add the new row onto the end, at index 'start'
 	return jsd_dataframe
 
-def id_generator(size=6):
-	#for creating unique filenames
-	import string
-	import random
-	return ''.join(random.choice(string.ascii_uppercase+string.digits) for _ in range(size))
-
 def create_agents(P,rng):
 	#initialize agents' internal parameters: initial opinion, intolerance, susceptibility,
 	#conformity, social reach. Truncate parameters below zero (or over 100 for O_i)
@@ -107,7 +120,7 @@ def network_agents(agentdict):
 				i.addtonetwork(j)
 
 
-
+'''Plotting ###########################################'''
 
 #Plotting funcitons require the packages Matplotlib and Seaborn
 def plot_opinion_trajectory(dataframe,P):
@@ -128,10 +141,13 @@ def plot_histograms(dataframe,P,datadir):
 	import seaborn as sns
 	import numpy as np
 	import os
-	opiniondir=datadir+'/opinion_histograms/' #linux
-	expresseddir=datadir+'/expressed_histograms/' #linux
-	# opiniondir=datadir+'\\opinion_histograms\\' #Windows
-	# expresseddir=datadir+'\\expressed_histograms\\' #Windows
+	import sys
+	if sys.platform == "linux" or sys.platform == "linux2" or sys.platform == "darwin":
+		opiniondir=datadir+'/opinion_histograms/'
+		expresseddir=datadir+'/expressed_histograms/'
+	elif sys.platform == "win32":
+		opiniondir=datadir+'\\opinion_histograms\\'
+		expresseddir=datadir+'\\expressed_histograms\\'
 	sns.set(context=P['plot_context'])
 	os.makedirs(opiniondir)
 	os.chdir(opiniondir)
@@ -160,11 +176,14 @@ def plot_maps(agentdict,dataframe,P,datadir):
 	from matplotlib import colors
 	import numpy as np
 	import os
-	opiniondir=datadir+'/opinion_maps/' #linux
-	expresseddir=datadir+'/expressed_maps/' #linux
+	import sys
+	if sys.platform == "linux" or sys.platform == "linux2" or sys.platform == "darwin":
+		opiniondir=datadir+'/opinion_maps/'
+		expresseddir=datadir+'/expressed_maps/'
+	elif sys.platform == "win32":
+		opiniondir=datadir+'\\opinion_maps\\'
+		expresseddir=datadir+'\\expressed_maps\\'
 	sns.set(context=P['plot_context'],style='white')
-	# opiniondir=datadir+'\\opinion_histograms\\' #Windows
-	# expresseddir=datadir+'\\expressed_histograms\\' #Windows
 	cm = plt.cm.get_cmap('seismic') #color map for matplotlib, defines color bar
 	os.makedirs(opiniondir)
 	os.chdir(opiniondir)
@@ -209,29 +228,23 @@ def plot_JSD(dataframe,jsd_dataframe,P):
 
 
 
-
+'''Main ###########################################'''
 
 def main():
 	import pandas as pd
-	import os 
+	import os
+	import sys
 	import numpy as np
 	import sys
 
-	'''Import Parameters, Initialize Agents and Dataframes'''
+	'''Importing Parameters, Initialize Agents and Dataframes, Change Directories'''
 	P=import_params('parameters.txt')
 	rng=np.random.RandomState(seed=P['seed']) #set the simulation seed
 	agentdict=create_agents(P,rng)
 	network_agents(agentdict)
 	dataframe=init_dataframe(P,agentdict)
 	jsd_dataframe=init_JSD(P)
-
-	'''Change Directory'''
-	root=os.getcwd()
-	addon=str(id_generator(9))
-	datadir=root+'/data/'+addon #Linux
-	# datadir=root+'\\data\\'+addon #Windows
-	os.makedirs(datadir) #linux
-	os.chdir(datadir) 
+	datadir=ch_dir()
 
 	print 'Running Simulation...'
 	for t in np.arange(1,P['t_sim']+1):
@@ -257,7 +270,7 @@ def main():
 	plot_opinion_trajectory(dataframe,P)
 	plot_histograms(dataframe,P,datadir)
 	plot_maps(agentdict,dataframe,P,datadir)
-	os.chdir(root)
+	os.chdir(os.getcwd())
 
 if __name__=='__main__':
 	main()

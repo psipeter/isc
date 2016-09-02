@@ -6,7 +6,7 @@ Install
 ============
 
 ## Clone the GitHub repository
-1. Install Git - https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
+1. Install Git (https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 2. Open a terminal (Max/Linux) or a command prompt (Windows)
 3. Enter 'git clone https://github.com/psipeter/influence_susceptibility_conformity.git'
 
@@ -20,7 +20,7 @@ Install
 2. 'ISC.py' is the main file, which imports the experimental parameters, initializes the simulation, runs it, exports the data, and plots pretty pictures
 3. 'parameters.txt' is the parameter file (duh). Written in dictionary format for easy import/export.
 	- Be sure to reset the seed to get unique behavior.
-4. 'fit_empirical.py' is the optimization algorithm used to find parameters which reproduced the empirical data. You probably won't use this. It takes a long time to run.
+4. 'fit_empirical.py' is the optimization algorithm used to find parameters which reproduced the empirical data.
 	- It utilizes the package 'hyperopt' which can be installed through Git (https://github.com/hyperopt/hyperopt), or a parallelization package for hyperopt called MongoDB (https://github.com/hyperopt/hyperopt/wiki/Parallelizing-Evaluations-During-Search-via-MongoDB), or a homemade evolutionary algorithm. 
 5. 'fitting_parameters.txt' is the parameter file for 'fit_empirical'.
 	- 'sim_threshold' is the similarity beyond which the 'fit_empirical' will start outputting plots and data.
@@ -42,3 +42,7 @@ Run
 3. run 'python ISC.py'
 4. You should see the message 'Running Simulation...' followed by a progress indicator
 5. When the simulation finishes, check out the 'data' folder to see your results. 
+
+Questions?
+==========
+1. Email 'psipeter@gmail.com'
