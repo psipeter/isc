@@ -20,21 +20,13 @@ Clone the GitHub repository
 	- Seaborn (https://stanford.edu/~mwaskom/software/seaborn/installing.html)
 	- Optional packages required for fit_empirical_ISC: 'hyperopt' which can be installed through Git (https://github.com/hyperopt/hyperopt); 'MongoDB', a parallelization package for hyperopt (https://github.com/hyperopt/hyperopt/wiki/Parallelizing-Evaluations-During-Search-via-MongoDB)
 
-Peruse the files in the 'isc' folder
-------------------------------------
+What are these files?
+=====================
 1. 'agent.py' is the python class for agents, and contains all the important equations
 2. 'model.py' is the main file, which imports the experimental parameters, initializes the simulation, runs it, exports the data, and plots pretty pictures
-3. 'parameters.txt' is the parameter file (duh). Written in dictionary format for easy import/export.
-	- Be sure to reset the seed to get unique behavior.
+3. 'parameters.txt' is the masin parameter file for model.py. Written in dictionary format for easy import/export.
 4. 'fit_empirical.py' is the optimization algorithm used to find parameters which reproduced the empirical data.
 5. 'fit_parameters.txt' is the parameter file for 'fit_empirical'.
-	- 'sim_threshold' is the similarity beyond which the 'fit_empirical' will start outputting plots and data.
-	- 'issue' refers to the subdataset from Broockman.
-	- 'optimization' refers to the optimization method: 'evolve', 'hyperopt', or 'mongodb'.
-	- 'loss_metric referes to how similarity is measured: 'RMSE' for root mean square error, or 'JSD' for Jensen-Shannon Divergence
-	- 'averages' is the number of uniquely-seeded realizations that each are run for each parameter combo, then averaged to calculate loss
-	- 'max_evals' is the number of parameter combos to run for 'hyperopt'
-	- 'evo_popsize', 'generations', 'threads', 'size_tournaments', 'mutation_rate', and 'mutation_amount' are parameters for the evolutionary algorithm
 6. 'broockman_data.txt' and 'pew_data.txt' are the empirical data files, also in dictionary format.
 7. 'data' folder is where model outputs are saved. Each is saved into a subfolder with a randomly-generated name
 8. 'figures' includes the parameters, data, and figures for the results reported in the paper
@@ -44,6 +36,7 @@ Run
 
 1. Navigate to the 'isc/isc' folder in the terminal/cmd
 2. Edit the 'parameters.txt' file
+	- Be sure to reset the seed to get unique behavior.
 3. run 'python model.py'
 4. You should see the message 'Running Simulation...' followed by a progress indicator
 5. When the simulation finishes, check out the 'data' folder to see your results. 
