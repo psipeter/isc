@@ -6,20 +6,22 @@ Install
 ============
 
 Clone the GitHub repository
-1. Install Git (https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+---------------------------
+1. Install Python 2.7.X (https://www.python.org/downloads/) and Git (https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 2. Open a terminal (Max/Linux) or a command prompt (Windows)
-3. Enter 'git clone https://github.com/psipeter/influence_susceptibility_conformity.git'
-4. Add the folder to your PYTHONPATH. At the terminal, type 'set PYTHONPATH=%PYTHONPATH%;C:\folder_location\influence_susceptibility_conformity' (Windows) or 'export '
-
-Install necessary packages
-1. Python 2.7.X (https://www.python.org/downloads/)
-2. The SciPy Stack: Matplotlib, Numpy, Scipy, and Pandas (https://www.scipy.org/install.html)
-3. Seaborn (https://stanford.edu/~mwaskom/software/seaborn/installing.html)
-4. Optional packages required for fit_empirical_ISC: 
-	- 'hyperopt' which can be installed through Git (https://github.com/hyperopt/hyperopt)
-	- 'MongoDB', a parallelization package for hyperopt (https://github.com/hyperopt/hyperopt/wiki/Parallelizing-Evaluations-During-Search-via-MongoDB)
+3. Clone the repository:
+	- git clone https://github.com/psipeter/influence_susceptibility_conformity.git
+4. Install with Pip (OR python):
+	- cd isc
+	- pip install .
+	- (python setup.py develop)
+5. Install missing packages if necessary
+	- The SciPy Stack: Matplotlib, Numpy, Scipy, and Pandas (https://www.scipy.org/install.html)
+	- Seaborn (https://stanford.edu/~mwaskom/software/seaborn/installing.html)
+	- Optional packages required for fit_empirical_ISC: 'hyperopt' which can be installed through Git (https://github.com/hyperopt/hyperopt); 'MongoDB', a parallelization package for hyperopt (https://github.com/hyperopt/hyperopt/wiki/Parallelizing-Evaluations-During-Search-via-MongoDB)
 
 Peruse the files in the 'isc' folder
+------------------------------------
 1. 'agent.py' is the python class for agents, and contains all the important equations
 2. 'model.py' is the main file, which imports the experimental parameters, initializes the simulation, runs it, exports the data, and plots pretty pictures
 3. 'parameters.txt' is the parameter file (duh). Written in dictionary format for easy import/export.
