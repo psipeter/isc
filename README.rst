@@ -1,6 +1,4 @@
-ISC - influence, susceptibility, conformity
 A Psychologically-Motivated Model of Opinion Change with Applications to American Politics
-Peter Duggins
 
 Install
 ============
