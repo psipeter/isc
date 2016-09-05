@@ -56,6 +56,7 @@ def init_evo_pop(fit_params):
 			'loss_metric':fit_params['loss_metric'],
 			'issue':fit_params['issue'],
 			'averages':fit_params['averages'],
+			'root':fit_params['root'],
 		}
 		evo_pop[i]={'P':P,'F':0.0} #P=parameters, F=fitness
 	return evo_pop
@@ -172,6 +173,7 @@ def search_space(fit_params):
 		'loss_metric':fit_params['loss_metric'],
 		'issue':fit_params['issue'],
 		'averages':fit_params['averages'],
+		'root':fit_params['root'],
 	}
 	return space
 
@@ -194,9 +196,14 @@ def calculate_similarity(P,dataframe,agentdict,rng):
 	import seaborn as sns
 	import numpy as np
 	import os
-
+	import sys
+	
 	if P['dataset']=='broockman':
-		brookman_dir='/home/pduggins/influence_susceptibility_conformity/brookman_data.txt'
+		brookman_dir=''#'/home/pduggins/influence_susceptibility_conformity/brookman_data.txt'
+		if sys.platform == "linux" or sys.platform == "linux2" or sys.platform == "darwin":
+			brookman_dir=P['root']+'/brookman_data.txt'
+		elif sys.platform == "win32":
+			brookman_dir=P['root']+'\\brookman_data.txt'
 		brookman_dict=eval(open(brookman_dir).read())
 		info={'sim':0,'time':0,'expressed':None,'empirical':None}
 		empirical=[]
@@ -236,7 +243,12 @@ def calculate_similarity(P,dataframe,agentdict,rng):
 			plt.close(figure1)
 
 	if P['dataset']=='pew':
-		pew_dir='/home/pduggins/influence_susceptibility_conformity/pew_data.txt'
+		pew_dir=''#'/home/pduggins/influence_susceptibility_conformity/brookman_data.txt'
+		if sys.platform == "linux" or sys.platform == "linux2" or sys.platform == "darwin":
+			pew_dir=P['root']+'/pew_data.txt'
+		elif sys.platform == "win32":
+			brookman_dir=P['root']+'\\pew_data.txt'
+		# pew_dir='/home/pduggins/influence_susceptibility_conformity/pew_data.txt'
 		pew_dict=eval(open(pew_dir).read())
 		info={}
 		C={}
@@ -313,8 +325,8 @@ def calculate_similarity(P,dataframe,agentdict,rng):
 
 '''main-----------------------------------------------------------------------'''
 def run(P):
-	from ISC import create_agents,network_agents,init_dataframe,update_dataframe
 	from fit_empirical_ISC import calculate_similarity
+	from ISC import create_agents,network_agents,init_dataframe,update_dataframe
 	from hyperopt import STATUS_OK
 	import numpy as np
 	import sys
@@ -351,9 +363,9 @@ def main():
 	from hyperopt.mongoexp import MongoTrials
 	import os 
 
-	fit_params=eval(open('fitting_parameters.txt').read())
+	fit_params=eval(open('fit_parameters.txt').read())
+	fit_params['root']=os.getcwd()
 	directory=init_directory(fit_params)
-
 	if fit_params['optimization']=='hyperopt':
 		space=search_space(fit_params)
 		trials=Trials()
@@ -378,7 +390,7 @@ def main():
 		from pathos.helpers import freeze_support #for Windows
 		import numpy as np
 		import pandas as pd
-		freeze_support()
+		# freeze_support()
 		evo_pop=init_evo_pop(fit_params)
 		pool = Pool(nodes=fit_params['threads'])
 
