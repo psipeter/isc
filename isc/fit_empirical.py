@@ -277,7 +277,7 @@ def calculate_similarity(P,dataframe,agentdict,rng):
 			if P['loss_metric']=='RMSE':
 				sim=1-np.sqrt(np.average((B-C['1994'])**2))
 			if sim > info['1994']['sim']:
-				info['1994']={'sim':sim,'time':t,'expressed':expressed[t],'empirical':empirical[date]}
+				info['1994']={'sim':sim,'time':t,'expressed':expressed[t],'empirical':empirical['1994']}
 
 		#measure the similarity to the last date (2014), with 3 measures in between first and last
 		for t in np.arange(info['1994']['time']+4*P['t_measure'],P['t_sim'],P['t_measure']):
@@ -290,7 +290,7 @@ def calculate_similarity(P,dataframe,agentdict,rng):
 			if P['loss_metric']=='RMSE':
 				sim=1-np.sqrt(np.average((B-C['2014'])**2))
 			if sim > info['2014']['sim']:
-				info['2014']={'sim':sim,'time':t,'expressed':expressed[t],'empirical':empirical[date]}
+				info['2014']={'sim':sim,'time':t,'expressed':expressed[t],'empirical':empirical['2014']}
 	
 		final_sim=np.average([info['1994']['sim'],info['2014']['sim']])
 
@@ -313,11 +313,11 @@ def calculate_similarity(P,dataframe,agentdict,rng):
 				sns.set(context='poster')
 				figure1, ax1 = plt.subplots(1, 1)
 				sns.distplot(info[date]['empirical'],bins=np.arange(-10,11),
-								norm_hist=True,kde=False,ax=ax1,label='empirical')
+								norm_hist=True,kde=True,ax=ax1,label='empirical')
 				sns.distplot(info[date]['expressed'],bins=np.arange(-10,11),
-								norm_hist=True,kde=False,ax=ax1,label='model'),
+								norm_hist=True,kde=True,ax=ax1,label='model'),
 				plt.legend()
-				ax1.set(title='%s'%date)
+				ax1.set(title='%s'%date, xlim=(-10,10),ylim=(0,0.1))
 				figure1.savefig('sim=%s_date=%s_t=%s.png' %(final_sim,date,t_plot[date]))
 				plt.close(figure1)	
 
@@ -325,8 +325,8 @@ def calculate_similarity(P,dataframe,agentdict,rng):
 
 '''main-----------------------------------------------------------------------'''
 def run(P):
-	from fit_empirical_ISC import calculate_similarity
-	from ISC import create_agents,network_agents,init_dataframe,update_dataframe
+	from fit_empirical import calculate_similarity
+	from model import create_agents,network_agents,init_dataframe,update_dataframe
 	from hyperopt import STATUS_OK
 	import numpy as np
 	import sys
