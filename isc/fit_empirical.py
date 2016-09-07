@@ -186,7 +186,7 @@ def plot_results(trials):
 	Y=[1.0-t['result']['loss'] for t in trials]
 	ax1.scatter(X,Y)
 	ax1.set(xlabel='$t$',ylabel='similarity')
-	plt.show()
+	figure1.savefig('hyperopt_result.png')
 
 '''shared methods-----------------------------------------------------------------------'''
 def calculate_similarity(P,dataframe,agentdict,rng):
